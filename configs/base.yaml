@@ -1,0 +1,79 @@
+# MSE-IIPF 公共配置。数据集专属项在 ravdess.yaml 等文件中覆盖。
+# 保留实验源码中的符号与历史公式编号；与当前稿件的对应及差异见 docs/METHOD_CODE_MAP.md。
+
+model:
+  # 输入维度（由 S2 提取器决定，见 cache/*/feats/*_meta.json）
+  d_visual: 768        # VideoMAE-base hidden
+  d_audio: 768         # emotion2vec_base
+  d_text: 768          # roberta-base
+  # 共享空间维度
+  d: 256               # E4 统一维度 d
+  d_p: 128             # E34 代理空间维度 d_p
+  d_f: 256             # E49 融合空间维度 d_f
+  num_heads: 4
+  dropout: 0.1
+
+  # 温度系数
+  tau_dsa: 0.07        # E6  双流对齐
+  tau_itac: 0.07       # E25 三模态对比
+  tau_r: 1.0           # E36 模态可靠性权重（大则三模态贡献更均衡）
+  tau_z: 0.07          # E43 状态转移对比
+  tau_q: 0.07          # E45 表征重建对比
+
+  # MAM
+  gamma: 0.5           # E22 mask 阈值 γ
+
+  # ITAC 权重 (α, β, η)；原文 L92 要求 α,β > η
+  itac_weights: [0.4, 0.4, 0.2]
+
+  # IIPF
+  lambda_d: 0.5        # E41 L_CMC 中分布一致性权重 λ_d
+  lambda_cyc: 0.5      # E48 循环一致性权重 λ_cyc
+  mu: [0.3333333333, 0.3333333333, 0.3333333333]  # E46 约束 μ_v+μ_a+μ_l=1
+  agg: gru_stable      # 稳定先验聚合方式：gru_stable | attn
+
+  # 证据头
+  anneal_epochs: 10    # E48 KL 退火轮数 E_anneal
+  lambda_cal: 0.5      # L_cal 正确性硬目标权重（u_t 回归到 1[ŷ_t≠y_t]）
+  lambda_ce: 4.0       # CE 辅助项权重（校准修复：加速正确类 evidence 增长，改善 ECE）
+  lambda_uni: 0.5      # 三模态辅助头监督权重（供 T6 的 Krippendorff α 分析）
+  lambda_seq: 0.0      # sequence 级证据分类损失权重；RAVDESS P0 实验覆盖为 0.5/1.0
+
+  # 总损失权重
+  w_dsa: 1.0                    # L_DSA
+  w_tma: [0.1, 1.0, 0.5]        # E32 的 λ1(L_MAM), λ2(L_ITAC), λ3(L_ITAM)
+  w_iipf: [1.0, 1.0, 1.0]       # λ_cmc, λ_tpc, λ_prr
+
+  # 消融开关（对应大纲 §5.4 的 A1–A13）
+  use_semantic_stream: true   # A1
+  use_gate: true              # A3
+  use_mam: true               # A4
+  use_itac: true              # A5
+  use_itam: true              # A6
+  use_iipf_module: true       # A7
+  use_cmc: true               # A8
+  use_tpc: true               # A9
+  use_prr: true               # A10
+  use_proxy_weight: true      # A11
+  use_evidential: true        # A12（false 退化为 Softmax 头）
+  use_cal: true               # A13
+
+train:
+  epochs: 30
+  batch_size: 16
+  lr: 1.0e-4
+  weight_decay: 1.0e-2
+  scheduler: cosine           # cosine | plateau | none
+  min_lr: 1.0e-6
+  grad_clip: 1.0
+  grad_accum: 1
+  amp: true
+  aux_warmup_epochs: 3        # 辅助损失线性升权轮数
+  early_stop_patience: 10
+  select_metric: macro_f1     # 类别不均衡，用 macro-F1 选最优而非 acc
+  num_workers: 0              # Windows 下多进程易出问题，默认单进程
+  seed: 42
+
+data:
+  max_units: 8                # 单样本最多取的时间单元数 T
+  strict_feats: true          # 发布版本缺特征直接报错，避免静默零特征实验

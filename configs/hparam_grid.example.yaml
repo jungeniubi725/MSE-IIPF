@@ -1,0 +1,4 @@
+# All grid jobs run validation-only. Select settings before testing.
+model.d_p: [64, 128, 256]
+model.tau_r: [0.5, 1.0, 2.0]
+

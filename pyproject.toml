@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "merc-mse-iipf"
+version = "0.1.0"
+description = "MSE-IIPF multimodal emotion recognition research code"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "torch==2.8.0", "numpy>=1.26,<3", "pandas>=2.1,<3", "scipy>=1.11,<2",
+  "scikit-learn>=1.5,<2", "PyYAML>=6,<7", "matplotlib>=3.8,<4", "h5py>=3.10,<4"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9"]
+plots = ["umap-learn>=0.5,<0.6"]
+download = ["huggingface-hub==0.35.3", "modelscope==1.39.0"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "scripts*", "experiments*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+

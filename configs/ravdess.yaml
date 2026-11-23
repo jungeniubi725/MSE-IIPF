@@ -1,0 +1,44 @@
+# RAVDESS 专属配置。与 base.yaml 合并（本文件优先）。
+#
+# 数据事实（s0_scan.py 实测）：
+#   2452 sequences / 9808 units（每样本切 K=4 片段）
+#   8 类不均衡：neutral 188, calm/happy/sad/angry/fearful 各 376,
+#              disgust 192, surprised 192
+#   说话人独立划分：train Actor_01-20 (2036) / val 21-22 (208) / test 23-24 (208)
+
+_base_: base.yaml
+
+data:
+  dataset: ravdess
+  manifest: cache/ravdess/manifest.csv
+  feat_dir: cache/ravdess/feats
+  num_classes: 8
+  class_names: [neutral, calm, happy, sad, angry, fearful, disgust, surprised]
+  max_units: 4              # s0_scan.py 用 --num-segments 4 生成
+  # 特征已全量提取（9808 unit / 2452 seq，零缺失）。开 strict 让路径或命名
+  # 回归时直接抛错，而不是静默返回全零、白跑 40 个 epoch。
+  strict_feats: true
+
+model:
+  # RAVDESS 是单段视频，时间单元由片段切分而来，片段间情绪转移较弱，
+  # 故 L_TPC 权重下调；MOSI/MOSEI 的 utterance 级转移才显著。
+  w_iipf: [1.0, 0.5, 1.0]
+
+train:
+  epochs: 40
+  batch_size: 16
+  lr: 1.0e-4
+  # P0：ReduceLROnPlateau 在 Trainer 中读取与选模相同的 seq_macro_f1。
+  scheduler: plateau
+  # 数据加载是瓶颈（逐 unit 读 .npy），多 worker 并行读盘；Windows 下需
+  # 可 pickle 的 collate（见 dataset.make_collate 的 partial 说明）。
+  num_workers: 0              # 跨平台默认；有需要时用 --set train.num_workers=4
+  # 8 类不均衡且 test 只有 2 位演员，单折方差大 —— 主表须报 5 折 ± 标准差
+  # RAVDESS 标签与正式评测都在 sequence 粒度，checkpoint/早停按该指标选择。
+  select_metric: seq_macro_f1
+
+eval:
+  # 5 折说话人独立 CV（Actor 分组见 src/data/ravdess.py 的 CV_FOLDS）
+  cv_folds: 5
+  seeds: [42, 43, 44]
+  coverages: [1.0, 0.9, 0.8, 0.7, 0.5]   # 风险-覆盖表的覆盖率档位

@@ -1,0 +1,19 @@
+# Feature extraction only. Install the core project first.
+# Versions correspond to the inspected experiment environment.
+transformers==4.57.3
+accelerate==1.12.0
+torchvision==0.23.0
+torchaudio==2.8.0
+funasr==1.4.0
+modelscope==1.39.0
+huggingface-hub==0.35.3
+soundfile>=0.12,<1
+librosa>=0.10,<1
+opencv-python>=4.9,<5
+sentencepiece>=0.2,<1
+protobuf>=4,<7
+einops>=0.8,<1
+timm>=1,<2
+# Optional int8/int4 LLaVA inference; omit on unsupported platforms and use --quant none.
+bitsandbytes==0.50.0
+
